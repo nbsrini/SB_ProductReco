@@ -92,7 +92,7 @@ def process_and_lemmatize(text):
 
 # Recommend products based on sentiment analysis
 def suggest_products(user_id):
-    recommendations = pk.load(open('pickle_file/user_final_rating.pkl', 'rb'))
+    recommendations = pk.load(open('pickle_file/final_user_reco_rating.pkl', 'rb'))
     user_top_products = pd.DataFrame(recommendations.loc[user_id].sort_values(ascending=False)[:20])
     filtered_products = data_frame[data_frame.name.isin(user_top_products.index.tolist())]
     filtered_products['cleaned_text'] = filtered_products['reviews_text'].map(lambda text: process_and_lemmatize(text))
