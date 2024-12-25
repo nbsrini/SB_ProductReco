@@ -10,7 +10,7 @@ from flask import Flask,render_template,request
 import model_interface
 app = Flask('__name__')
 
-selection_reviewusernames = ['zzz1127','piggyboy420','zburt5','joshua','dorothy','cassie','moore222','rebecca','walker557','samantha',
+selection_reviewusernames = ['piggyboy420','zburt5','joshua','cassie','moore222','rebecca','walker557','samantha',
                              'raeanne','kimmie','1943','4cloroxl', 'yummy','yvonne','zburt5','zebras','zippy','00sab00','02dakota','02deuce',
                              '0325home','06stidriver','zuttle','zwithanx','zxcsdfd','zyiah4','zzdiane']
 @app.route('/')
