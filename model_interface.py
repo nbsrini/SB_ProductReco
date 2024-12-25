@@ -21,8 +21,8 @@ nltk.download('omw-1.4')
 # Load the pickle files 
 vectorizer = pk.load(open('pickle_file/count_vector.pkl', 'rb'))  # Count Vectorizer
 transformer = pk.load(open('pickle_file/tfidf_transformer.pkl', 'rb'))  # TFIDF Transformer
-classifier = pk.load(open('pickle_file/model.pkl', 'rb'))  # Classification Model
-user_recommendations = pk.load(open('pickle_file/user_final_rating.pkl', 'rb'))  # User-User Recommendation System 
+classifier = pk.load(open('pickle_file/final_LR_model.pkl', 'rb'))  # Classification Model
+user_recommendations = pk.load(open('pickle_file/final_user_reco_rating.pkl', 'rb'))  # User-User Recommendation System 
 
 language_processor = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
