@@ -24,9 +24,9 @@ def generate_top5_recommendations():
     print('User name=',user_name)
     
     if  user_name in selection_reviewusernames and request.method == 'POST':
-            Recomm_top20 = model_interface.suggest_products(user_name)
+            Recomm_top20 = model_interface.recommend_top20_products(user_name)
             print(Recomm_top20.head())
-            Recomm_top5 = model_interface.top_rated_products(Recomm_top20)
+            Recomm_top5 = model_interface.recommend_top5_products(Recomm_top20)
             
             return render_template('index.html',column_names=Recomm_top5.columns.values, row_data=list(Recomm_top5.values.tolist()), zip=zip,text='Recommended products')
     elif not user_name in  selection_reviewusernames:

@@ -19,92 +19,86 @@ nltk.download('wordnet')
 nltk.download('omw-1.4')
 
 # Load the pickle files 
-vectorizer = pk.load(open('pickle_file/count_vector.pkl', 'rb'))  # Count Vectorizer
-transformer = pk.load(open('pickle_file/tfidf_transformer.pkl', 'rb'))  # TFIDF Transformer
-classifier = pk.load(open('pickle_file/final_LR_model.pkl', 'rb'))  # Classification Model
-user_recommendations = pk.load(open('pickle_file/final_user_reco_rating.pkl', 'rb'))  # User-User Recommendation System 
+count_vctr_obj = pk.load(open('pickle_file/count_vector.pkl', 'rb'))  # Count Vectorizer
+tfidf_obj = pk.load(open('pickle_file/tfidf_transformer.pkl', 'rb'))  # TFIDF Transformer
+LR_classifier_model = pk.load(open('pickle_file/final_LR_model.pkl', 'rb'))  # Classification Model
+final_user_reco = pk.load(open('pickle_file/final_user_reco_rating.pkl', 'rb'))  # User-User Recommendation System 
 
 language_processor = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
-data_frame = pd.read_csv('sample30.csv', sep=",")
+# Read the source csv file into a df
+src_df = pd.read_csv('sample30.csv', sep=",") 
 
-# Special characters removal
-def clean_text(text, remove_numbers=True):
-    """Remove special characters from text"""
-    pattern = r'[^a-zA-Z0-9\s]' if not remove_numbers else r'[^a-zA-Z\s]'
+#Functions to clean up text
+
+def rem_spec_chars(text, remove_digits=True):
+    """Remove the special Characters"""
+    pattern = r'[^a-zA-z0-9\s]' if not remove_digits else r'[^a-zA-z\s]'
     text = re.sub(pattern, '', text)
     return text
 
-def convert_to_lowercase(tokens):
-    """Convert all tokens to lowercase"""
-    return [token.lower() for token in tokens]
+def clean_sent(sent):
+  sent=sent.lower()  #make the text lowercase
+  sent=re.sub('\[[\w\s]*\]',' ',sent) #Remove text in square brackets
+  sent=re.sub('[^\w\s]',' ',sent) #Remove punctuation
+  sent = rem_spec_chars (sent, True) #Remove special characters
+  sent=re.sub('[\w]*[\d]+[\w]*',' ',sent) #Remove words containing numbers
+  return sent
 
-def remove_punctuation_and_specials(tokens):
-    """Remove punctuation and special characters from tokens"""
-    cleaned_tokens = []
-    for token in tokens:
-        token = re.sub(r'[^\w\s]', '', token)
-        if token:
-            token = clean_text(token, True)
-            cleaned_tokens.append(token)
-    return cleaned_tokens
 
 stop_words = stopwords.words('english')
 
-def filter_stopwords(tokens):
-    """Remove stopwords from tokens"""
-    return [token for token in tokens if token not in stop_words]
+#Removing stop words
+def rem_stops(sent):
+    """Remove stop words"""
+    new_sent = []
+    for word in sent:
+        if word not in stop_words:
+            new_sent.append(word)
+    return new_sent
 
-def apply_stemming(tokens):
-    """Stem the tokens"""
-    stemmer = LancasterStemmer()
-    return [stemmer.stem(token) for token in tokens]
+#Lemmatize verbs
+def lemmat_vbs(sent):
+    """Lemmatize verbs only"""
+    lmt = WordNetLemmatizer()
+    new_sent = []
+    for word in sent:
+        lemma = lmt.lemmatize(word, pos='v')
+        new_sent.append(lemma)
+    return new_sent
 
-def apply_lemmatization(tokens):
-    """Lemmatize the tokens"""
-    lemmatizer = WordNetLemmatizer()
-    return [lemmatizer.lemmatize(token, pos='v') for token in tokens]
+#Consolidate functions of removing stop words and lemmatization
+def stop_and_lemmat(input_text):
+    tokens = nltk.word_tokenize(input_text)
+    word_list = rem_stops(tokens)
+    lemma_list = lemmat_vbs(word_list)
+    return ' '.join(lemma_list)
 
-def preprocess_text(tokens):
-    """Preprocess tokens by normalizing and removing special characters"""
-    tokens = convert_to_lowercase(tokens)
-    tokens = remove_punctuation_and_specials(tokens)
-    tokens = filter_stopwords(tokens)
-    return tokens
-
-def lemmatize_tokens(tokens):
-    """Lemmatize tokens"""
-    return apply_lemmatization(tokens)
 
 # Predicting sentiment of product reviews
 def predict_sentiment(review_text):
-    vectorized_text = vectorizer.transform(review_text)
-    transformed_text = transformer.transform(vectorized_text)
-    return classifier.predict(transformed_text)
+    word_vector = count_vctr_obj.transform(review_text)
+    tfidf_vector = tfidf_obj.transform(word_vector)
+    return LR_classifier_model.predict(tfidf_vector)
 
-def process_and_lemmatize(text):
-    """Clean, tokenize, and lemmatize text"""
-    text = clean_text(text)
-    tokens = nltk.word_tokenize(text)
-    tokens = preprocess_text(tokens)
-    lemmatized_tokens = lemmatize_tokens(tokens)
-    return ' '.join(lemmatized_tokens)
 
-# Recommend products based on sentiment analysis
-def suggest_products(user_id):
-    recommendations = pk.load(open('pickle_file/final_user_reco_rating.pkl', 'rb'))
-    user_top_products = pd.DataFrame(recommendations.loc[user_id].sort_values(ascending=False)[:20])
-    filtered_products = data_frame[data_frame.name.isin(user_top_products.index.tolist())]
-    filtered_products['cleaned_text'] = filtered_products['reviews_text'].map(lambda text: process_and_lemmatize(text))
-    filtered_products['sentiment'] = predict_sentiment(filtered_products['cleaned_text'])
-    return filtered_products
 
-def top_rated_products(data):
+# Recommend top 20 products based on user recommendation system
+def recommend_top20_products(user_id):
+    top20_products_user = pd.DataFrame(final_user_reco.loc[user_id].sort_values(ascending=False)[:20])
+    products_subset_df = src_df[src_df.name.isin(top20_products_user.index.tolist())]
+    products_subset_df['reviews_text_cln'] = products_subset_df['reviews_text'].apply(lambda x:clean_sent(x))
+    products_subset_df['lemmatized_review'] = products_subset_df['reviews_text_cln'].apply(lambda text: stop_and_lemmat(text))
+    products_subset_df['sentiment'] = predict_sentiment(products_subset_df['lemmatized_review'])
+    return products_subset_df
+
+# Recommend top 5 products based on sentiment analysis
+def recommend_top5_products(df):
     """Identify the top 5 products based on sentiment percentage"""
-    product_totals = data.groupby(['name']).agg('count')
-    sentiment_totals = data.groupby(['name', 'sentiment']).agg('count').reset_index()
-    merged_data = pd.merge(sentiment_totals, product_totals['reviews_text'], on='name')
-    merged_data['percentage'] = (merged_data['reviews_text_x'] / merged_data['reviews_text_y']) * 100
-    merged_data = merged_data.sort_values(ascending=False, by='percentage')
-    top_products = pd.DataFrame(merged_data['name'][merged_data['sentiment'] == 1][:5])
-    return top_products
+    cnt_product_total_reviews = df.groupby(['name']).agg('count')
+    cnt_sentiment_totals = df.groupby(['name', 'sentiment']).agg('count').reset_index()
+    df_merged_data = pd.merge(cnt_sentiment_totals, cnt_product_total_reviews['reviews_text'], on='name')
+    df_merged_data['percentage'] = (df_merged_data['reviews_text_x'] / df_merged_data['reviews_text_y']) * 100
+    df_merged_data = df_merged_data.sort_values(ascending=False, by='percentage')
+    top5_products = pd.DataFrame(df_merged_data['name'][df_merged_data['sentiment'] == 1][:5])
+    return top5_products
