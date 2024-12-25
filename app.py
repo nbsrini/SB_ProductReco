@@ -10,23 +10,25 @@ from flask import Flask,render_template,request
 import model_interface
 app = Flask('__name__')
 
-selection_reviewusernames = ['zzz1127','piggyboy420','zburt5','joshua','dorothy','cassie','moore222','rebecca','walker557','samantha','raeanne','kimmie']
+selection_reviewusernames = ['zzz1127','piggyboy420','zburt5','joshua','dorothy','cassie','moore222','rebecca','walker557','samantha',
+                             'raeanne','kimmie','1943','4cloroxl', 'yummy','yvonne','zburt5','zebras','zippy','00sab00','02dakota','02deuce',
+                             '0325home','06stidriver','zuttle','zwithanx','zxcsdfd','zyiah4','zzdiane']
 @app.route('/')
 def view():
     return render_template('index.html')
 
 @app.route('/recommend',methods=['POST'])
-def recommend_top5():
+def generate_top5_recommendations():
     print(request.method)
     user_name = request.form['User Name']
     print('User name=',user_name)
     
     if  user_name in selection_reviewusernames and request.method == 'POST':
-            top20_products = model_interface.suggest_products(user_name)
-            print(top20_products.head())
-            get_top5 = model_interface.top_rated_products(top20_products)
+            Recomm_top20 = model_interface.suggest_products(user_name)
+            print(Recomm_top20.head())
+            Recomm_top5 = model_interface.top_rated_products(Recomm_top20)
             
-            return render_template('index.html',column_names=get_top5.columns.values, row_data=list(get_top5.values.tolist()), zip=zip,text='Recommended products')
+            return render_template('index.html',column_names=Recomm_top5.columns.values, row_data=list(Recomm_top5.values.tolist()), zip=zip,text='Recommended products')
     elif not user_name in  selection_reviewusernames:
         return render_template('index.html',text='No Recommendations available for the user')
     else:
